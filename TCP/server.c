@@ -91,44 +91,48 @@ void* working(void* arg){
 			type = client_reply[0] - 48;
 			continue;
 		}
-		else{
-			switch (type)
-			{
-			case CLIENT:{
-				switch(recv_size - 1){
-					case QUESTIONS:
-						file[0] = 0;
-						wcscat(file, L"data/question.txt");
-						break;
-					case DATENOTE:
-						isDate = 1;
-						file[0] = 0;
-						break;
-					case FREE_LAWYER:
-						isLawyer = 1;
-						file[0] = 0;
-						wcscat(file, L"data/lawyer.txt");
-						break;
-					default:
-						file[0] = 0;
-						if(recv_size - 1 < 4) break;
-						if(client_reply[QUESTIONS] > 47 && client_reply[QUESTIONS] < 58 && 
-								client_reply[DATENOTE] > 47 && client_reply[DATENOTE] < 58 && 
-								client_reply[FREE_LAWYER] > 47 && client_reply[FREE_LAWYER] < 58){
-							isNewNote = 1;
-						}
-						break;
-				}
-				break;
+		
+		switch (type)
+		{
+		case CLIENT:{
+			switch(recv_size){
+				case QUESTIONS:
+					file[0] = 0;
+					wcscat(file, L"data/question.txt");
+					break;
+				case DATENOTE:
+					isDate = 1;
+					file[0] = 0;
+					break;
+				case FREE_LAWYER:
+					isLawyer = 1;
+					file[0] = 0;
+					wcscat(file, L"data/lawyer.txt");
+					break;
+				case FREE_LAWYER + 1:
+					file[0] = 0;
+					wcscat(message, L"GET");
+					break;
+				default:
+					file[0] = 0;
+					if(recv_size - 1 < 4) break;
+					if(client_reply[QUESTIONS] > 47 && client_reply[QUESTIONS] < 58 && 
+							client_reply[DATENOTE] > 47 && client_reply[DATENOTE] < 58 && 
+							client_reply[FREE_LAWYER] > 47 && client_reply[FREE_LAWYER] < 58){
+						isNewNote = 1;
+					}
+					break;
 			}
-			case LAWYER:
-				break;
-			case ADMIN:
-				break;
-			default:
-				break;
-			}
+			break;
 		}
+		case LAWYER:
+			break;
+		case ADMIN:
+			break;
+		default:
+			break;
+		}
+		
 
 		if(file[0] != 0){ 
 			getContent(file, message);
@@ -199,12 +203,13 @@ void* working(void* arg){
 			}
 		}
 
+		_putws(message);
 		if( send(*(SOCKET*)arg, message, MAX_LENGTH, 0) < 0)
 		{
 			break;
 		}
 	}
-
+	puts("Disconect");
 	return NULL;
 }
 
@@ -218,7 +223,7 @@ int saveNote(wchar_t* input){
 	int* freeLawyer = getFreeLawyer(&count, input[DATENOTE] - 48);
 	if(count > input[FREE_LAWYER + 1] - 48){
 		pthread_mutex_lock( &m );  
-		FILE* fp = _wfopen("data/notes.txt", L"a+");
+		FILE* fp = _wfopen(L"data/notes.txt", L"a+");
 		fseek(fp, 0, SEEK_END);
 		if(fp != NULL)
 		{
@@ -300,9 +305,9 @@ int* getFreeLawyer(int* count, int setDate){
 void getContent(wchar_t* filename, wchar_t* buff){
 	pthread_mutex_lock( &m );  
 	FILE* fp = _wfopen(filename, L"r");
-    if(fp != NULL && buff != NULL)
+    if(fp != NULL)
     {
-        fgetws(buff, MAX_LENGTH, fp);
+		fgetws(buff, MAX_LENGTH, fp);
 		fclose(fp);
     }
 	pthread_mutex_unlock( &m );

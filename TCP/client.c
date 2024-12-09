@@ -1,71 +1,69 @@
-/*
-        Create a TCP socket
-*/
+#pragma one
 
 #include<stdio.h>
 #include<winsock2.h>
 
 #pragma comment(lib,"ws2_32.lib") //Winsock Library
 
-int main(int argc , char *argv[])
-{
+#define PORT 8080
+#define MAX_LENGTH 512
+
+struct Client{
 	WSADATA wsa;
 	SOCKET s;
 	struct sockaddr_in server;
-	char *message , server_reply[2000];
+	wchar_t message[MAX_LENGTH] , server_reply[MAX_LENGTH];
 	int recv_size;
+};
 
-	printf("\nInitialising Winsock...");
-	if (WSAStartup(MAKEWORD(2,2),&wsa) != 0)
+typedef struct Client CLIENT;
+
+enum Errors {
+	OK,
+	ERROR_WSA,
+	ERROR_SOCKET,
+	ERROR_CONNECT,
+	ERROR_SEND,
+	ERROR_RECV
+};
+
+int init(CLIENT* client, char* IP){
+	if (WSAStartup(MAKEWORD(2,2),&(client->wsa)) != 0)
 	{
-		printf("Failed. Error Code : %d",WSAGetLastError());
-		return 1;
+		return ERROR_WSA;
 	}
-	
-	printf("Initialised.\n");
 	
 	//Create a socket
-	if((s = socket(AF_INET , SOCK_STREAM , 0 )) == INVALID_SOCKET)
+	if((client->s = socket(AF_INET , SOCK_STREAM , 0 )) == INVALID_SOCKET)
 	{
-		printf("Could not create socket : %d" , WSAGetLastError());
+		return ERROR_SOCKET;
 	}
-
-	printf("Socket created.\n");
 	
-	
-	server.sin_addr.s_addr = inet_addr("127.0.0.1");
-	server.sin_family = AF_INET;
-	server.sin_port = htons( 80 );
+	client->server.sin_addr.s_addr = inet_addr(IP);
+	client->server.sin_family = AF_INET;
+	client->server.sin_port = htons(PORT);
 
 	//Connect to remote server
-	if (connect(s , (struct sockaddr *)&server , sizeof(server)) < 0)
+	if (connect(client->s , (struct sockaddr *)&(client->server) , sizeof(client->server)) < 0)
 	{
-		puts("connect error");
-		return 1;
+		return ERROR_CONNECT;
 	}
-	
-	puts("Connected");
-	
+	return OK;
+}
+
+int send_recv(CLIENT* client){
 	//Send some data
-	message = "hi";
-	if( send(s , message , strlen(message) , 0) < 0)
+	if(send(client->s , client->message , MAX_LENGTH , 0) < 0)
 	{
-		puts("Send failed");
-		return 1;
+		return ERROR_SEND;
 	}
-	puts("Data Send\n");
 	
 	//Receive a reply from the server
-	if((recv_size = recv(s , server_reply , 2000 , 0)) == SOCKET_ERROR)
+	if((client->recv_size = recv(client->s , client->server_reply , MAX_LENGTH , 0)) == SOCKET_ERROR)
 	{
-		puts("recv failed");
+		return ERROR_RECV;
 	}
-	
-	puts("Reply received\n");
-
 	//Add a NULL terminating character to make it a proper string before printing
-	server_reply[recv_size] = '\0';
-	puts(server_reply);
-
+	client->server_reply[client->recv_size] = '\0';
 	return 0;
 }
