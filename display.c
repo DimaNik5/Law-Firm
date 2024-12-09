@@ -7,8 +7,10 @@
 
 int menu(wchar_t* m){
     wchar_t t;
-    int c = -1;
+    int c;
     do{
+        c = 0;
+        system("cls");
         int i = 0;
         int l = 0;
         while(m[i] != L'\0'){
@@ -22,7 +24,7 @@ int menu(wchar_t* m){
                 l++;
                 continue;
             }
-            if(j = 0){
+            if(j == 0){
                 wprintf(L"%d. ", l);
             }
             while(m[i + j] != L'.'){
@@ -36,21 +38,19 @@ int menu(wchar_t* m){
         while(1){
             if(_kbhit()){
                 t = _getwch();
-                wprintf(L"%c ", t);
-                wprintf(L"%d", t);
+                wprintf(L"%c", t);
                 if(t == 13){
                     break;
                 }
                 if(t > 48 && t < 48 + l){
                     c *= 10;
-                    c += t + 48;
+                    c += t - 48;
                 }
                 else{
                     c = -1;
                 }
             }
         }
-        system("cls");
     }while(c <= 0);
     return c;
 }

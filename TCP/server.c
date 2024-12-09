@@ -83,14 +83,13 @@ void* working(void* arg){
 		{
 			break;
 		}
-		client_reply[recv_size] = L'\0';
+		int i = 0;
+		while(client_reply[i]) i++;
+		recv_size = i;
 
 		int type, isDate = 0, isLawyer = 0, isNewNote = 0;
 		message[0] = 0;
-		if(recv_size == 1){
-			type = client_reply[0] - 48;
-			continue;
-		}
+		type = client_reply[0] - 48;
 		
 		switch (type)
 		{
@@ -132,7 +131,6 @@ void* working(void* arg){
 		default:
 			break;
 		}
-		
 
 		if(file[0] != 0){ 
 			getContent(file, message);
@@ -154,14 +152,16 @@ void* working(void* arg){
 					if(m > 11) m = 0;
 					max_d = (m > 6 ? (m % 2 ? 31 : 30) : (m % 2 ? (m == 1 ? 28 : 30) : 31));
 				}
-				swprintf(t, L"%d/%d.\0", d, m + 1);
+				swprintf(t, 7, L"%d/%d.", d, m + 1);
 				wcscat(message, t);
 				
 			}
+			free(now);
 		}
 		else if(isLawyer){
 			int count = 0;
-			wchar_t* s[MAX_LENGTH];
+			wchar_t s[MAX_LENGTH];
+			s[0] = 0;
 			wcscat(s, message);
 			for (int i = 0; s[i]; i++){
 				if(s[i] == L'.') count++;
@@ -172,27 +172,30 @@ void* working(void* arg){
 				int real = 0;
 				int point = 0;
 				for(int k = 0; k < count; k++){
-					if(freeLawyer[k] == point){
-						s[cur++] = s[real++];
-						if(s[real] == L'.'){
-							point++;
-							continue;
+					while(1){
+						if(freeLawyer[k] == point){
+							s[cur++] = s[real++];
+							if(s[real] == L'.'){
+								s[cur++] = s[real++];
+								point++;
+								break;
+							}
 						}
-					}
-					while (freeLawyer[k] != point)
-					{
-						if(s[real++] == L'.'){
-							point++;
+						while (freeLawyer[k] != point)
+						{
+							if(s[real++] == L'.'){
+								point++;
+							}
 						}
 					}
 					
 				}
+				s[cur] = 0;
 				free(freeLawyer);
 				message[0] = 0;
 				wcscat(message, L"Адвокаты.");
 				wcscat(message, s);
 			}
-			else message[0] = 0;
 		}
 		else if(isNewNote){
 			if(saveNote(client_reply) == 0){
@@ -203,7 +206,6 @@ void* working(void* arg){
 			}
 		}
 
-		_putws(message);
 		if( send(*(SOCKET*)arg, message, MAX_LENGTH, 0) < 0)
 		{
 			break;
@@ -215,32 +217,33 @@ void* working(void* arg){
 
 int saveNote(wchar_t* input){
 	int count = 0;
-	wchar_t* s[MAX_LENGTH];
+	wchar_t s[MAX_LENGTH];
 	getContent(L"data/lawyer.txt", s);
 	for (int i = 0; s[i]; i++){
 		if(s[i] == L'.') count++;
 	}
 	int* freeLawyer = getFreeLawyer(&count, input[DATENOTE] - 48);
-	if(count > input[FREE_LAWYER + 1] - 48){
+	if(count > input[FREE_LAWYER] - 48){
 		pthread_mutex_lock( &m );  
 		FILE* fp = _wfopen(L"data/notes.txt", L"a+");
-		fseek(fp, 0, SEEK_END);
 		if(fp != NULL)
 		{
 			wchar_t t[7];
 			time_t mytime = time(NULL);
 			struct tm *now = localtime(&mytime);
-			int d = now->tm_mday + 1;
+			int d = now->tm_mday + 1 + input[DATENOTE] - 48;
 			int m = now->tm_mon;
 			int max_d = (m > 6 ? (m % 2 ? 31 : 30) : (m % 2 ? (m == 1 ? 28 : 30) : 31));
 			m++;
 			if(d > max_d){
-				d = 1;
+				d = d % max_d + 1;
 				m++;
+			}
+			if(m > 12){
 				m = m % 13 + 1;
 			}
-			swprintf(t, L"%d/%d.\0", d, m + 1);
-			fwprintf(fp, L"%s,%d,%s\n", t, &freeLawyer[input[FREE_LAWYER + 1] - 48], (input + FREE_LAWYER + 2));
+			swprintf(t, 7, L"%d/%d.", d, m);
+			fwprintf(fp, L"%s,%d,%d,%s\n", t, freeLawyer[input[FREE_LAWYER] - 48], input[QUESTIONS] - 48, (input + FREE_LAWYER + 1));
 			fclose(fp);
 		}
 		pthread_mutex_unlock( &m );
@@ -254,32 +257,41 @@ int* getFreeLawyer(int* count, int setDate){
 	wchar_t t[7];
 	time_t mytime = time(NULL);
 	struct tm *now = localtime(&mytime);
-	int d = now->tm_mday + 1;
-	int m = now->tm_mon;
-	int max_d = (m > 6 ? (m % 2 ? 31 : 30) : (m % 2 ? (m == 1 ? 28 : 30) : 31));
-	m++;
+	int d = now->tm_mday + setDate + 1;
+	int mo = now->tm_mon;
+	int max_d = (mo > 6 ? (mo % 2 ? 31 : 30) : (mo % 2 ? (mo == 1 ? 28 : 30) : 31));
+	mo++;
 	if(d > max_d){
-		d = 1;
-		m++;
-		m = m % 13 + 1;
+		d = d % max_d + 1;
+		mo++;
 	}
-	swprintf(t, L"%d/%d.\0", d, m + 1);
+	if(mo > 12) mo = mo % 13 + 1;
+	swprintf(t, 7, L"%d/%d.", d, mo);
 
-	wchar_t buff[MAX_LENGTH];
-	wchar_t temp[30];
+	wchar_t buff[MAX_LENGTH]; 
 	pthread_mutex_lock( &m );  
-	FILE* fp = _wfopen(L"data/notes.txt", L"r");
-    if(fp != NULL && buff != NULL)
+	FILE* fp = _wfopen(L"data/notes.txt", L"r, ccs=UTF-8");
+    if(fp != NULL)
     {
         while(fgetws(buff, MAX_LENGTH, fp) != NULL){
-			if(wcsstr(buff, t)){
-				int l;
-				swscanf(buff, "%s,%d,%s\n", temp, &l, temp);
+			if(wcsstr(buff, t) != NULL){
+				int l = 0, j = -1;
+				wchar_t* p = wcsstr(buff, L",");
+				if(p == NULL) continue;
+				p++;
+				while(*p != L','){
+					l *= 10;
+					l += *p - 48;
+					p++;
+				}
 				for(int i = 0; i < *count; i++){
 					if(res[i] == l){
-						res[i] = res[(*count) - 1];
-						(*count)--;
+						j = i;
 					}
+				}
+				if(j > -1){
+					res[j] = res[(*count) - 1];
+					*count -= 1;
 				}
 			}
 		}
@@ -304,7 +316,7 @@ int* getFreeLawyer(int* count, int setDate){
 
 void getContent(wchar_t* filename, wchar_t* buff){
 	pthread_mutex_lock( &m );  
-	FILE* fp = _wfopen(filename, L"r");
+	FILE* fp = _wfopen(filename, L"r, ccs=UTF-8");
     if(fp != NULL)
     {
 		fgetws(buff, MAX_LENGTH, fp);

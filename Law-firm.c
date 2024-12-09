@@ -29,26 +29,15 @@ int main(){
     way[1] = 0;
 
     wchar_t fio[30];
-    FILE * file;
-    file = fopen("data/fio.txt", "r");
-    if (file){
-        fgetws(fio, 30, file);
-        fclose(file);
-    }else{
-        wprintf(L"Введите своё ФИО: ");
-        wscanf("%s\n", fio);
-        FILE * fp;
-        if(fp){
-            fp = fopen("data/fio.txt", "w+");
-            fputws(fio, fp);
-            fclose(fp);
-        }
-    }
+    fio[0] = 0;
+    wprintf(L"Введите своё ФИО: ");
+    wscanf(L"%s\n", fio);
 
     l = 1;
+    int f = 1;
     while(l >= 1){
-        client->message[0] = 0;
-        wcscat(client->message, way);
+        if(f) client->message[0] = 0;
+        if(f) wcscat(client->message, way);
         r = send_recv(client);
         if(r){
             printf("Error %d", r);
@@ -56,12 +45,13 @@ int main(){
             exit(r);
         }
         if(wcsstr(client->server_reply, L"GET") != NULL){
+            wprintf(L"s\n", fio);
             wcscat(client->message, way);
             wcscat(client->message, fio);
+            f = 0;
             continue;
         }
-
-        _putws(client->server_reply);
+        f = 1;
         wcscat(client->server_reply, L"Назад.");
         wchar_t* s = client->server_reply;
         int count;
