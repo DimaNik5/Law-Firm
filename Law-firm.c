@@ -6,7 +6,6 @@
 #include <fcntl.h>
 
 #define SPEC 48
-#define initMes(M) M[0] = SPEC; M[1] = 0
 #define countSimbol(C, M, S) for(C=0;M[C];M[C] == S ? C++ : *M++)
 
 //#pragma comment(lib,"ws2_32.lib")

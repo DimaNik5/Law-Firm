@@ -26,6 +26,10 @@ int* getFreeLawyer(int* count, int setDate);
 
 void getContent(wchar_t* filename, wchar_t* buff);
 
+int getLawyer(wchar_t* name);
+
+void getNotes(int c, wchar_t* mes);
+
 int main(int argc , char *argv[])
 {
 	SOCKET s;
@@ -66,7 +70,6 @@ int main(int argc , char *argv[])
 enum TypesOfUsers {
 	CLIENT,
 	LAWYER,
-	ADMIN
 };
 
 enum MenusForClient {
@@ -86,6 +89,7 @@ void* working(void* arg){
 		int i = 0;
 		while(client_reply[i]) i++;
 		recv_size = i;
+		
 
 		int type, isDate = 0, isLawyer = 0, isNewNote = 0;
 		message[0] = 0;
@@ -124,10 +128,14 @@ void* working(void* arg){
 			}
 			break;
 		}
-		case LAWYER:
+		case LAWYER:{
+			file[0] = 0;
+			int n = getLawyer(client_reply + 1);
+			wprintf(L"%d\n", n);
+			if(n == -1) break;
+			getNotes(n, message);
 			break;
-		case ADMIN:
-			break;
+		}
 		default:
 			break;
 		}
@@ -323,6 +331,44 @@ void getContent(wchar_t* filename, wchar_t* buff){
 		fclose(fp);
     }
 	pthread_mutex_unlock( &m );
+}
+
+void getNotes(int c, wchar_t* mes){
+	wchar_t buff[MAX_LENGTH]; 
+	pthread_mutex_lock( &m );  
+	FILE* fp = _wfopen(L"data/notes.txt", L"r, ccs=UTF-8");
+    if(fp != NULL)
+    {
+        while(fgetws(buff, MAX_LENGTH, fp) != NULL){
+			int l = 0, j = -1;
+			wchar_t* p = wcsstr(buff, L",");
+			if(p == NULL) continue;
+			p++;
+			while(*p != L','){
+				l *= 10;
+				l += *p - 48;
+				p++;
+			}
+			if(l == c){
+				wcscat(mes, buff);
+			}
+		}
+		fclose(fp);
+    }
+	pthread_mutex_unlock( &m );
+}
+
+int getLawyer(wchar_t* name){
+	wprintf(L"%s\n", name);
+	int count = 0;
+	wchar_t s[MAX_LENGTH];
+	getContent(L"data/lawyer.txt", s);
+	wchar_t* r = wcsstr(s, name);
+	if(r == NULL) return -1;
+	for (int i = 0; i < (int)(r - s + 1); i++){
+		if(s[i] == L'.') count++;
+	}
+	return count;
 }
 
 int init(SOCKET* s, WSADATA* wsa, struct sockaddr_in* server){
