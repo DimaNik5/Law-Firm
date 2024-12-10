@@ -42,7 +42,7 @@ int menu(wchar_t* m){
                 if(t == 13){
                     break;
                 }
-                if(t > 48 && t < 48 + l){
+                if(t > 47 && t < 48 + l){
                     c *= 10;
                     c += t - 48;
                 }

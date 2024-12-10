@@ -63,7 +63,5 @@ int send_recv(CLIENT* client){
 	{
 		return ERROR_RECV;
 	}
-	//Add a NULL terminating character to make it a proper string before printing
-	client->server_reply[client->recv_size] = '\0';
-	return 0;
+	return OK;
 }

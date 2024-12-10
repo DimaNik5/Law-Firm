@@ -30,7 +30,7 @@ int main(){
     wchar_t fio[30];
     fio[0] = 0;
     wprintf(L"Введите своё ФИО: ");
-    wscanf(L"%s\n", fio);
+    wscanf(L"%s", fio);
 
     l = 1;
     int f = 1;
@@ -40,11 +40,10 @@ int main(){
         r = send_recv(client);
         if(r){
             printf("Error %d", r);
-            getchar();
             exit(r);
         }
         if(wcsstr(client->server_reply, L"GET") != NULL){
-            wprintf(L"s\n", fio);
+            client->message[0] = 0;
             wcscat(client->message, way);
             wcscat(client->message, fio);
             f = 0;

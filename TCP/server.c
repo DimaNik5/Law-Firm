@@ -48,17 +48,18 @@ int main(int argc , char *argv[])
 	
 	int c = sizeof(struct sockaddr_in);
 	struct sockaddr_in client;
-	SOCKET new_socket;
+	SOCKET* new_socket;
 	while(1)
 	{
-		new_socket = accept(s , (struct sockaddr *)&client, &c);
+		new_socket = (SOCKET*)malloc(sizeof(SOCKET));
+		*new_socket = accept(s , (struct sockaddr *)&client, &c);
 		if (new_socket == INVALID_SOCKET)
 		{
 			printf("accept failed with error code : %d" , WSAGetLastError());
 			break;
 		}
 		puts("Connection accepted");
-    	pthread_create(&t, NULL, working, &new_socket);
+    	pthread_create(&t, NULL, working, new_socket);
 	}
 
 	closesocket(s);
@@ -90,7 +91,6 @@ void* working(void* arg){
 		while(client_reply[i]) i++;
 		recv_size = i;
 		
-
 		int type, isDate = 0, isLawyer = 0, isNewNote = 0;
 		message[0] = 0;
 		type = client_reply[0] - 48;
@@ -119,9 +119,7 @@ void* working(void* arg){
 				default:
 					file[0] = 0;
 					if(recv_size - 1 < 4) break;
-					if(client_reply[QUESTIONS] > 47 && client_reply[QUESTIONS] < 58 && 
-							client_reply[DATENOTE] > 47 && client_reply[DATENOTE] < 58 && 
-							client_reply[FREE_LAWYER] > 47 && client_reply[FREE_LAWYER] < 58){
+					if(client_reply[QUESTIONS] > 47 && client_reply[DATENOTE] > 47 && client_reply[FREE_LAWYER] > 47){
 						isNewNote = 1;
 					}
 					break;
@@ -255,7 +253,9 @@ int saveNote(wchar_t* input){
 			fclose(fp);
 		}
 		pthread_mutex_unlock( &m );
+		return 0;
 	}
+	return 1;
 
 }
 
